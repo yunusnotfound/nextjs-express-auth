@@ -1,5 +1,8 @@
 "use client";
 import Link from "next/link";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { loginSchema, type LoginFormData } from "@/lib/validations/auth";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,12 +15,14 @@ import {
 import {
   Field,
   FieldDescription,
+  FieldError,
   FieldGroup,
   FieldLabel,
   FieldSeparator,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export function LoginForm({
   className,
@@ -25,25 +30,40 @@ export function LoginForm({
 }: React.ComponentProps<"div">) {
   const router = useRouter();
 
-  async function handleSubmit(event: React.SyntheticEvent<HTMLFormElement>) {
-    event.preventDefault();
+  const [apiError, setApiError] = useState<string | null>(null);
 
-    // const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-    const formData = new FormData(event.currentTarget);
-    const email = formData.get("email");
-    const password = formData.get("password");
-
+  async function onSubmit(data: LoginFormData) {
     const response = await fetch("http://localhost:3001/api/auth/login", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
     });
 
     if (response.ok) {
+      setApiError(null);
+      form.reset();
       router.push("/dashboard");
     } else {
+      let message = "Login failed";
+
+      try {
+        const data = await response.json();
+        message = data.message || message;
+      } catch {}
+      setApiError(message);
     }
   }
+
+  const form = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -55,7 +75,7 @@ export function LoginForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
             <FieldGroup>
               <Field>
                 <Button variant="outline" type="button">
@@ -83,12 +103,14 @@ export function LoginForm({
               <Field>
                 <FieldLabel htmlFor="email">Email</FieldLabel>
                 <Input
-                  name="email"
                   id="email"
                   type="email"
+                  {...form.register("email")}
                   placeholder="m@example.com"
-                  required
                 />
+                {form.formState.errors.email?.message && (
+                  <FieldError>{form.formState.errors.email.message}</FieldError>
+                )}
               </Field>
               <Field>
                 <div className="flex items-center">
@@ -100,9 +122,19 @@ export function LoginForm({
                     Forgot your password?
                   </a>
                 </div>
-                <Input id="password" type="password" name="password" required />
+                <Input
+                  id="password"
+                  type="password"
+                  {...form.register("password")}
+                />
+                {form.formState.errors.password?.message && (
+                  <FieldError>
+                    {form.formState.errors.password.message}
+                  </FieldError>
+                )}
               </Field>
               <Field>
+                {apiError && <FieldError>{apiError}</FieldError>}
                 <Button type="submit">Login</Button>
                 <FieldDescription className="text-center">
                   Don&apos;t have an account?{" "}
