@@ -46,11 +46,7 @@ const logout = asyncHandler(async (req, res) => {
 
   await authService.logout(refreshToken);
 
-  res.clearCookie("refreshToken", {
-    httpOnly: true,
-    secure: true,
-    sameSite: "strict",
-  });
+  res.clearCookie("refreshToken");
 
   res.status(200).json({ message: "Logged out" });
 });

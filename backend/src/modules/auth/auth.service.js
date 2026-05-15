@@ -118,13 +118,14 @@ const logout = async (refreshToken) => {
   if (!refreshToken) return;
 
   // verify token first
-  const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-  // update user refreshToken to null and return
-  await prisma.user.update({
-    where: { id: decoded.id },
-    data: { refreshToken: null },
-  });
-
+  try {
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+    // update user refreshToken to null and return
+    await prisma.user.update({
+      where: { id: decoded.id },
+      data: { refreshToken: null },
+    });
+  } catch (err) {}
   return true;
 };
 

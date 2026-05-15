@@ -1,6 +1,8 @@
+"use client";
 import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Slot } from "radix-ui";
+import { useRouter } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 
@@ -41,6 +43,21 @@ const buttonVariants = cva(
   },
 );
 
+function LogoutButton() {
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await fetch("http://localhost:3001/api/auth/logout", {
+      method: "POST",
+      credentials: "include",
+    });
+
+    router.push("/login");
+  };
+
+  return <Button onClick={handleLogout}>Logout</Button>;
+}
+
 function Button({
   className,
   variant = "default",
@@ -64,4 +81,4 @@ function Button({
   );
 }
 
-export { Button, buttonVariants };
+export { Button, buttonVariants, LogoutButton };
