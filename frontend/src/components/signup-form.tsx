@@ -29,26 +29,35 @@ export function SignupForm({
 }: React.ComponentProps<"div">) {
   const router = useRouter();
   const [apiError, setApiError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   async function onSubmit(data: RegisterFormData) {
-    const response = await fetch("http://localhost:3001/api/auth/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
+    setLoading(true);
+    try {
+      // wait 2 second
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
-    if (response.ok) {
-      setApiError(null);
-      form.reset();
-      router.push("/dashboard");
-    } else {
-      let message = "Register failed.";
+      const response = await fetch("http://localhost:3001/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
 
-      try {
-        const data = await response.json();
-        message = data.message || message;
-      } catch {}
-      setApiError(message);
+      if (response.ok) {
+        setApiError(null);
+        form.reset();
+        router.push("/dashboard");
+      } else {
+        let message = "Register failed.";
+
+        try {
+          const data = await response.json();
+          message = data.message || message;
+        } catch {}
+        setApiError(message);
+      }
+    } finally {
+      setLoading(false);
     }
   }
   const form = useForm<RegisterFormData>({
@@ -106,7 +115,9 @@ export function SignupForm({
               </Field>
               <Field>
                 {apiError && <FieldError>{apiError}</FieldError>}
-                <Button type="submit">Create Account</Button>
+                <Button type="submit" disabled={loading}>
+                  Create Account
+                </Button>
                 <FieldDescription className="text-center">
                   Already have an account? <Link href="/login">Sign in</Link>
                 </FieldDescription>

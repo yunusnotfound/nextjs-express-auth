@@ -31,28 +31,36 @@ export function LoginForm({
   const router = useRouter();
 
   const [apiError, setApiError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   async function onSubmit(data: LoginFormData) {
-    const response = await fetch("http://localhost:3001/api/auth/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    });
+    setLoading(true);
+    try {
+      // wait 2 sec
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const response = await fetch("http://localhost:3001/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
 
-    if (response.ok) {
-      setApiError(null);
-      form.reset();
-      router.push("/dashboard");
-    } else {
-      let message = "Login failed";
+      if (response.ok) {
+        setApiError(null);
+        form.reset();
+        router.push("/dashboard");
+      } else {
+        let message = "Login failed";
 
-      try {
-        const data = await response.json();
-        message = data.message || message;
-      } catch {}
-      setApiError(message);
+        try {
+          const data = await response.json();
+          message = data.message || message;
+        } catch {}
+        setApiError(message);
+      }
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -135,7 +143,9 @@ export function LoginForm({
               </Field>
               <Field>
                 {apiError && <FieldError>{apiError}</FieldError>}
-                <Button type="submit">Login</Button>
+                <Button type="submit" disabled={loading}>
+                  Login
+                </Button>
                 <FieldDescription className="text-center">
                   Don&apos;t have an account?{" "}
                   <Link href="/register">Sign up</Link>
