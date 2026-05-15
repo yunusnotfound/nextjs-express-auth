@@ -2,6 +2,9 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { registerSchema, type RegisterFormData } from "@/lib/validations/auth";
 import {
   Card,
   CardContent,
@@ -12,37 +15,49 @@ import {
 import {
   Field,
   FieldDescription,
+  FieldError,
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export function SignupForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
   const router = useRouter();
+  const [apiError, setApiError] = useState<string | null>(null);
 
-  async function handleSubmit(event: React.SyntheticEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-    const formData = new FormData(event.currentTarget);
-    const email = formData.get("email");
-    const password = formData.get("password");
-
-    const response = await fetch(`${baseUrl}/api/auth/register`, {
+  async function onSubmit(data: RegisterFormData) {
+    const response = await fetch("http://localhost:3001/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify(data),
     });
 
     if (response.ok) {
+      setApiError(null);
+      form.reset();
       router.push("/dashboard");
     } else {
+      let message = "Register failed.";
+
+      try {
+        const data = await response.json();
+        message = data.message || message;
+      } catch {}
+      setApiError(message);
     }
   }
+  const form = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -54,7 +69,7 @@ export function SignupForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
             <FieldGroup>
               {/* <Field>
                 <FieldLabel htmlFor="name">Full Name</FieldLabel>
@@ -65,10 +80,12 @@ export function SignupForm({
                 <Input
                   id="email"
                   type="email"
-                  name="email"
+                  {...form.register("email")}
                   placeholder="m@example.com"
-                  required
                 />
+                {form.formState.errors.email?.message && (
+                  <FieldError>{form.formState.errors.email.message}</FieldError>
+                )}
               </Field>
               <Field>
                 <Field>
@@ -77,13 +94,18 @@ export function SignupForm({
                     <Input
                       id="password"
                       type="password"
-                      name="password"
-                      required
+                      {...form.register("password")}
                     />
+                    {form.formState.errors.password?.message && (
+                      <FieldError>
+                        {form.formState.errors.password.message}
+                      </FieldError>
+                    )}
                   </Field>
                 </Field>
               </Field>
               <Field>
+                {apiError && <FieldError>{apiError}</FieldError>}
                 <Button type="submit">Create Account</Button>
                 <FieldDescription className="text-center">
                   Already have an account? <Link href="/login">Sign in</Link>
