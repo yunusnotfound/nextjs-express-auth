@@ -10,4 +10,8 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password cannot be empty"),
 });
 
-module.exports = { registerSchema, loginSchema };
+const refreshSchema = z.object({
+  refreshToken: z.string().min(1),
+});
+
+module.exports = { registerSchema, loginSchema, refreshSchema };
