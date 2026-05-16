@@ -4,7 +4,10 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { registerSchema, type RegisterFormData } from "@/lib/validations/auth";
+import {
+  registerSchema,
+  type RegisterFormData,
+} from "@/features/auth/validations/auth.schema";
 import {
   Card,
   CardContent,
@@ -20,47 +23,17 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRegister } from "../hooks/use-register";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AUTH_ERROR_TYPE } from "../utils/auth-error";
+import { NetworkAlert } from "./network-error-alert";
 
 export function SignupForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  const router = useRouter();
-  const [apiError, setApiError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const { loading, apiError, handleRegister } = useRegister();
 
-  async function onSubmit(data: RegisterFormData) {
-    setLoading(true);
-    try {
-      // wait 2 second
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      const response = await fetch("http://localhost:3001/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(data),
-      });
-
-      if (response.ok) {
-        setApiError(null);
-        form.reset();
-        router.push("/dashboard");
-      } else {
-        let message = "Register failed.";
-
-        try {
-          const data = await response.json();
-          message = data.message || message;
-        } catch {}
-        setApiError(message);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -79,7 +52,7 @@ export function SignupForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
+          <form onSubmit={form.handleSubmit(handleRegister)}>
             <FieldGroup>
               {/* <Field>
                 <FieldLabel htmlFor="name">Full Name</FieldLabel>
@@ -115,7 +88,13 @@ export function SignupForm({
                 </Field>
               </Field>
               <Field>
-                {apiError && <FieldError>{apiError}</FieldError>}
+                {apiError?.type === AUTH_ERROR_TYPE.NETWORK && <NetworkAlert />}
+
+                {apiError && apiError.type !== AUTH_ERROR_TYPE.NETWORK && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{apiError.message}</AlertDescription>
+                  </Alert>
+                )}
                 <Button type="submit" disabled={loading}>
                   Create Account
                 </Button>

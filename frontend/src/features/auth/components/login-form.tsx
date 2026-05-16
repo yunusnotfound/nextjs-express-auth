@@ -2,7 +2,10 @@
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { loginSchema, type LoginFormData } from "@/lib/validations/auth";
+import {
+  loginSchema,
+  type LoginFormData,
+} from "@/features/auth/validations/auth.schema";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,53 +24,19 @@ import {
   FieldSeparator,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useLogin } from "../hooks/use-login";
+import { NetworkAlert } from "./network-error-alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AUTH_ERROR_TYPE } from "../utils/auth-error";
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  const router = useRouter();
-
-  const [apiError, setApiError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  async function onSubmit(data: LoginFormData) {
-    setLoading(true);
-    try {
-      // wait 2 sec
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      const response = await fetch("http://localhost:3001/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify(data),
-      });
-
-      if (response.ok) {
-        setApiError(null);
-        form.reset();
-        router.push("/dashboard");
-      } else {
-        let message = "Login failed";
-
-        try {
-          const data = await response.json();
-          message = data.message || message;
-        } catch {}
-        setApiError(message);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }
+  const { loading, apiError, handleLogin } = useLogin();
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
-
     defaultValues: {
       email: "",
       password: "",
@@ -84,7 +53,7 @@ export function LoginForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
+          <form onSubmit={form.handleSubmit(handleLogin)}>
             <FieldGroup>
               <Field>
                 <Button variant="outline" type="button">
@@ -143,7 +112,13 @@ export function LoginForm({
                 )}
               </Field>
               <Field>
-                {apiError && <FieldError>{apiError}</FieldError>}
+                {apiError?.type === AUTH_ERROR_TYPE.NETWORK && <NetworkAlert />}
+
+                {apiError && apiError.type !== AUTH_ERROR_TYPE.NETWORK && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{apiError.message}</AlertDescription>
+                  </Alert>
+                )}
                 <Button type="submit" disabled={loading}>
                   Login
                 </Button>
